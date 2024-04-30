@@ -1,0 +1,6 @@
+services:
+  DuckChat:
+    image: ghcr.io/shang-zhen/duck:latest
+    restart: always
+    ports:
+      - "3456:3456"
