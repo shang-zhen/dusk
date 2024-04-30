@@ -7,7 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/net/proxy"
 	"io"
+	"math/rand"
 	"net/http"
+	"time"
 )
 
 type OpenAIRequest struct {
@@ -62,11 +64,24 @@ type DuckDuckGoResponse struct {
 	Model   string `json:"model"`
 }
 
+func getRandomUserAgent() string {
+	source := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(source)
+	userAgents := []string{
+		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36",
+		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/112.0  uacq",
+		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Iron Safari/537.36",
+		"Mozilla/5.0 (Windows NT 10.0; rv:111.0) Gecko/20100101 Firefox/111.0",
+	}
+	return userAgents[r.Intn(len(userAgents))]
+}
+
 func chatWithDuckDuckGo(c *gin.Context, messages []struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }, stream bool) {
-	userAgent := "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0"
+	userAgent := getRandomUserAgent()
+
 	headers := map[string]string{
 		"User-Agent":      userAgent,
 		"Accept":          "text/event-stream",
@@ -282,6 +297,13 @@ func main() {
 	})
 
 	r.POST("/v1/chat/completions", func(c *gin.Context) {
+		// 获取 Authorization 请求头
+		authHeader := c.Request.Header.Get("Authorization")
+		if authHeader != "Bearer 000123123" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid bearer token"})
+			return
+		}
+
 		var req OpenAIRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
