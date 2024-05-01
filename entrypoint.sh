@@ -3,6 +3,14 @@ set -m
 
 # Execute /app/DuckChat in the background
 /app/DuckChat &
+# Add a cron job to restart warp-svc every hour
+echo "0 */2 * * * /app/restart_warp.sh" | crontab -
+
+
+# Start cron in the background
+cron &
+
+# Existing code...
 
 nohup /usr/local/bin/warp-svc > /app/warp.log &
 sleep 2

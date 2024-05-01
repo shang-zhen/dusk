@@ -20,14 +20,17 @@ RUN CGO_ENABLED=0 go build -a -installsuffix cgo -o DuckChat .
 # Final stage: Alpine setup
 FROM ubuntu:22.04
 RUN apt update && \
-    apt-get install -y libdbus-1-3 curl
+    apt-get install -y libdbus-1-3 curl cron
 
 COPY --from=buildwarp /usr/bin/warp-cli /usr/bin/warp-svc /usr/local/bin/
 
 #duck
 COPY --from=buildgo /go/src/duck/DuckChat /app/DuckChat
 RUN chmod +x /app/DuckChat
-
+#restart
+COPY restart_warp.sh /app/restart_warp.sh
+RUN chmod +x /app/restart_warp.sh
+#entrypoint
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
