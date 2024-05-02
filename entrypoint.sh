@@ -5,9 +5,9 @@ set -m
 /app/DuckChat &
 
 # Add a cron job to restart warp-svc every hour
-echo "0 */2 * * * /app/restart_warp.sh" | crontab -
+echo "0 */2 * * * pkill warp-svc; nohup /usr/local/bin/warp-svc > /app/warp.log &" | crontab -
 cron &
-
+sleep 2
 #
 nohup /usr/local/bin/warp-svc > /app/warp.log &
 sleep 2
