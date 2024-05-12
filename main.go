@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/net/proxy"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"time"
@@ -286,6 +288,30 @@ func stringPtr(s string) *string {
 	return &s
 }
 
+func getIPThroughProxy(proxyURL, checkIPURL string) (string, error) {
+	// 创建一个代理拨号器
+	dialer, err := proxy.SOCKS5("tcp", proxyURL, nil, proxy.Direct)
+	if err != nil {
+		return "", fmt.Errorf("can't connect to the proxy: %s", err)
+	}
+	// 设置网络传输
+	httpTransport := &http.Transport{}
+	httpTransport.Dial = dialer.Dial
+	// 创建一个使用代理的HTTP客户端
+	client := &http.Client{Transport: httpTransport}
+	// 发起请求
+	resp, err := client.Get(checkIPURL)
+	if err != nil {
+		return "", fmt.Errorf("can't GET the page: %s", err)
+	}
+	defer resp.Body.Close()
+	// 读取响应
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("can't read the page body: %s", err)
+	}
+	return string(body), nil
+}
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
@@ -293,6 +319,19 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Hello world. 52-417",
+		})
+	})
+
+	r.GET("/ip", func(c *gin.Context) {
+		ip, err := getIPThroughProxy("0.0.0.0:40000", "http://ipinfo.io/ip")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"ip": ip,
 		})
 	})
 
